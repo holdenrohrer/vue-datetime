@@ -1,13 +1,13 @@
 <template>
   <div class="vdatetime-calendar">
     <div class="vdatetime-calendar__navigation">
-      <div class="vdatetime-calendar__navigation--previous" @click="previousMonth">
+      <div class="vdatetime-calendar__navigation--previous" @click="previousMonth" :class="{'vdatetime-calendar__navigation--disabled': checkPrevMonth}">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 61.3 102.8">
           <path fill="none" stroke="#444" stroke-width="14" stroke-miterlimit="10" d="M56.3 97.8L9.9 51.4 56.3 5"/>
         </svg>
       </div>
       <div class="vdatetime-calendar__current--month">{{ monthName }} {{ newYear }}</div>
-      <div class="vdatetime-calendar__navigation--next" @click="nextMonth">
+      <div class="vdatetime-calendar__navigation--next" @click="nextMonth" :class="{'vdatetime-calendar__navigation--disabled': checkNextMonth}">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 61.3 102.8">
           <path fill="none" stroke="#444" stroke-width="14" stroke-miterlimit="10" d="M56.3 97.8L9.9 51.4 56.3 5"/>
         </svg>
@@ -24,7 +24,7 @@
 
 <script>
 import { DateTime } from 'luxon'
-import { monthDayIsDisabled, monthDays, months, weekdays } from './util'
+import { monthDayIsDisabled, monthDays, months, weekdays, monthIsDisabled } from './util'
 
 export default {
   props: {
@@ -61,7 +61,11 @@ export default {
     return {
       newDate: DateTime.fromObject({ year: this.year, month: this.month, zone: 'UTC' }),
       weekdays: weekdays(this.weekStart),
-      months: months()
+      months: months(),
+      checkNextMonth: false,
+      checkPrevMonth: false,
+      nextDate: null,
+      prevDate: null
     }
   },
 
@@ -92,12 +96,27 @@ export default {
 
       this.$emit('change', this.newYear, this.newMonth, day.number)
     },
+    checkMonths () {
+      this.prevDate = this.newDate.minus({ months: 1 })
+      this.checkPrevMonth = monthIsDisabled(this.minDate, this.maxDate, this.prevDate.year, this.prevDate.month)
+      this.nextDate = this.newDate.plus({ months: 1 })
+      this.checkNextMonth = monthIsDisabled(this.minDate, this.maxDate, this.nextDate.year, this.nextDate.month)
+    },
     previousMonth () {
-      this.newDate = this.newDate.minus({ months: 1 })
+      if (!this.checkPrevMonth) {
+        this.newDate = this.prevDate
+        this.checkMonths()
+      }
     },
     nextMonth () {
-      this.newDate = this.newDate.plus({ months: 1 })
+      if (!this.checkNextMonth) {
+        this.newDate = this.nextDate
+        this.checkMonths()
+      }
     }
+  },
+  created () {
+    this.checkMonths()
   }
 }
 </script>
@@ -211,6 +230,16 @@ export default {
   cursor: default;
 
   &:hover > span > span {
+    color: inherit;
+    background: transparent;
+  }
+}
+
+.vdatetime-calendar__navigation--disabled {
+  opacity: 0.4;
+  cursor: default;
+
+  &:hover {
     color: inherit;
     background: transparent;
   }
